@@ -47,7 +47,7 @@ $ python generate_graph.py
 ```
 
 ## Visualizing data
-_**RECOMMENDED:**_ use a software like [Gephi](https://gephi.org/) that allow graph visualization, taking GEXF files as input.
+_**RECOMMENDED:**_ use a software like [Gephi](https://gephi.org/) that allows graph visualization, taking GEXF files as input.
 
 ## 💻 Technologies Used
 * [Node](https://nodejs.org/en/)
