@@ -53,3 +53,6 @@ _**RECOMMENDED:**_ use a software like [Gephi](https://gephi.org/) that allows g
 * [Node](https://nodejs.org/en/)
 * [puppeteer](https://github.com/GoogleChrome/puppeteer)
 * [python 3.7](https://www.python.org/)
+
+## License
+This project is licensed under the GNU General Public License v2.0 . See [License](LICENSE) for more info.
