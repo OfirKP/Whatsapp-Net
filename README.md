@@ -43,8 +43,12 @@ Edit `GROUPS_DATA_PATH` and `OUTPUT_GEXF_PATH` to match the location of the json
 
 Then, run the python script:
 ```bash
-$ python generate_graph.py
+$ python generate_graph.py <path_to_data.json>
 ```
+Optional arguments:
+- `-c`, `--contacts`: path to contacts (.json) file
+- `-o`, `--output`: path to output GEXF file (default is `graph.gexf`)
+- `-h`, `--help`: help message to get more info about the usage of the script
 
 ## Visualizing data
 _**RECOMMENDED:**_ use a software like [Gephi](https://gephi.org/) that allows graph visualization, taking GEXF files as input.
