@@ -7,10 +7,25 @@ import networkx as nx
 # import matplotlib.pyplot as plt
 
 GROUPS_DATA_PATH = 'data.json'  # Replace with your json file path
-OUTPUT_GEXF_PATH = 'graph.gexf'  # Path to save graph
+OUTPUT_GEXF_PATH = 'graph.gexf'  # Path to save
+CONTACTS_PATH = 'contacts.json'
+
+use_contacts = True
+
+with open(CONTACTS_PATH, mode='r', encoding='utf-8') as f:
+    contacts = json.load(f)
 
 with open(GROUPS_DATA_PATH, mode='r', encoding='utf-8') as f:
     data = json.load(f)
+
+if use_contacts:
+    for group in data.values():
+        for contact in group["participants"][:]:
+            if contact in contacts:
+                group["participants"].remove(contact)
+                group["participants"].append(contacts[contact])
+
+print()
 
 G = nx.Graph()
 groups = list(data.values())

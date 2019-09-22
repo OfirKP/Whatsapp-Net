@@ -15,6 +15,18 @@ async function generateGroupsInfo() {
     return jsonObj;
 }
 
+async function getContactsInfo() {
+    const contacts = WAPI.getMyContacts();
+    let jsonObj = {};
+
+    for (const contact of contacts)
+    {
+        jsonObj[contact.id.user] = contact.name;
+    }
+
+    return jsonObj;
+}
+
 function download(content, fileName, contentType) {
     var a = document.createElement("a");
     var file = new Blob([content], {type: contentType});
@@ -25,6 +37,11 @@ function download(content, fileName, contentType) {
 
 async function run()
 {
+    console.log("Downloading contacts...");
+    const contacts = await getContactsInfo();
+    console.log(contacts);
+    download(JSON.stringify(contacts, null, 4), 'contacts.json', 'application/json');
+
     console.log("Generating JSON...");
     const data = await generateGroupsInfo();
     console.log(data);
@@ -32,4 +49,4 @@ async function run()
     
 }
 
-run().then(() => console.log("Generated JSON!"));
+run().then(() => console.log("Downloaded contacts! Generated JSON!"));
