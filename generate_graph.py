@@ -4,21 +4,29 @@
 from tqdm import tqdm
 import json
 import networkx as nx
+import argparse
 # import matplotlib.pyplot as plt
 
-GROUPS_DATA_PATH = 'data.json'  # Replace with your json file path
-OUTPUT_GEXF_PATH = 'graph.gexf'  # Path to save
-CONTACTS_PATH = 'contacts.json'
+DEFAULT_OUTPUT_PATH = 'graph.gexf'  # Path to save
+output_path = DEFAULT_OUTPUT_PATH
 
-use_contacts = True
+parser = argparse.ArgumentParser(description="Generate GEXF graph file from scraped data")
+parser.add_argument("data", type=str, help="path to data (.json) file")
+parser.add_argument("-c", "--contacts", type=str, help="path to contacts (.json) file")
+parser.add_argument("-o", "--output", type=str, help="path to output GEXF file (default is {})"
+                    .format(DEFAULT_OUTPUT_PATH))
+args = parser.parse_args()
 
-with open(CONTACTS_PATH, mode='r', encoding='utf-8') as f:
-    contacts = json.load(f)
-
-with open(GROUPS_DATA_PATH, mode='r', encoding='utf-8') as f:
+with open(args.data, mode='r', encoding='utf-8') as f:
     data = json.load(f)
 
-if use_contacts:
+if args.output:
+    output_path = args.output
+
+if args.contacts:
+    with open(args.contacts, mode='r', encoding='utf-8') as f:
+        contacts = json.load(f)
+
     for group in data.values():
         for contact in group["participants"][:]:
             if contact in contacts:
@@ -30,6 +38,7 @@ print()
 G = nx.Graph()
 groups = list(data.values())
 
+print("{} groups were found.".format(len(groups)))
 print("Creating graph...")
 for group in tqdm(groups):
     participants_cpy = group["participants"][:]
@@ -43,7 +52,7 @@ for group in tqdm(groups):
 print()
 
 print("Saving Graph...")
-nx.write_gexf(G, OUTPUT_GEXF_PATH)
+nx.write_gexf(G, output_path)
 
 # Uncomment lines below to plot the graph using networkx and matplotlib
 
