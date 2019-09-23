@@ -12,33 +12,32 @@ async function main() {
         timeout: 0
     });
 
-    var isLogin = await checkLogin(page);
-    if(!isLogin) {
-        console.log("not logged in")
-    }
-
     var filepath = path.join(__dirname, "WAPI.js");
     await page.addScriptTag({ path: require.resolve(filepath) });
+
+    await page.waitForFunction('WAPI.isLoggedIn()',
+    {
+        polling: 1000,
+        timeout: 0
+    })
+    console.log("Logged in!")
     filepath = path.join(__dirname, "inject.js");
     await page.addScriptTag({path: require.resolve(filepath)});
-    
-    //const groups = await page.evaluate('WAPI.getAllGroups().map((group) => group.name);')
-    //console.log(groups)
 
     //await browser.close();
 };
 
-async function checkLogin(page) {
-    console.log("Page is loading");
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    var output = await page.evaluate("localStorage['last-wid']");
+// async function checkLogin(page) {
+//     console.log("Page is loading");
+//     await new Promise(resolve => setTimeout(resolve, 10000));
+//     var output = await page.evaluate("localStorage['last-wid']");
 
-    if (output) {
-        console.log("You are already logged in!");
-    } else {
-        console.log("You are not logged in. Please scan the QR code.");
-    }
-    return output;
-}
+//     if (output) {
+//         console.log("You are already logged in!");
+//     } else {
+//         console.log("You are not logged in. Please scan the QR code.");
+//     }
+//     return output;
+// }
 
 main();
