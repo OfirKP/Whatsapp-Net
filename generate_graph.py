@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+import os
 
 from tqdm import tqdm
 import json
@@ -10,6 +11,15 @@ import argparse
 DEFAULT_OUTPUT_PATH = 'graph.gexf'  # Path to save
 output_path = DEFAULT_OUTPUT_PATH
 contacts = None
+
+
+def merge_json_files(*filenames):
+    merged = {}
+    for filename in filenames[::-1]:
+        assert os.path.isfile(filename), "File {} doesn't exist!".format(filename)
+        with open(filename, 'r', encoding='utf-8') as file:
+            merged.update(json.load(file))
+    return merged
 
 
 def insert_data_into_graph(data, graph, contacts=None):
@@ -40,8 +50,10 @@ def insert_data_into_graph(data, graph, contacts=None):
 
 
 parser = argparse.ArgumentParser(description="Generate GEXF graph file from scraped data")
-parser.add_argument("data", nargs="+", type=str, help="paths to data(.json)s files")
-parser.add_argument("-c", "--contacts", type=str, help="path to contacts (.json) file")
+parser.add_argument("data", nargs="+", type=str, help="paths to data (.json) files")
+parser.add_argument("-c", "--contacts", nargs="*", type=str, help="paths to contacts (.json) files, so that the first "
+                                                                  "file overrides names of identical contacts in other "
+                                                                  "files")
 parser.add_argument("-o", "--output", type=str, help="path to output GEXF file (default is {})"
                     .format(DEFAULT_OUTPUT_PATH))
 args = parser.parse_args()
@@ -50,8 +62,7 @@ if args.output:
     output_path = args.output
 
 if args.contacts:
-    with open(args.contacts, 'r', encoding='utf-8') as f:
-        contacts = json.load(f)
+    contacts = merge_json_files(*args.contacts)
 
 visited_groups = set()
 
@@ -65,7 +76,7 @@ for path in args.data:
     insert_data_into_graph(groups_data, G, contacts=contacts)
     print()
 
-print("Saving Graph...")
+print("Saving Graph to {}...".format(output_path))
 nx.write_gexf(G, output_path)
 
 # Uncomment lines below to plot the graph using networkx and matplotlib

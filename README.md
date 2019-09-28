@@ -39,14 +39,13 @@ A browser window should open. If you're not connected to WhatsApp web, connect b
 Wait until json file starts downloading.
 
 ### Generating Graph (GEXF file)
-Edit `GROUPS_DATA_PATH` and `OUTPUT_GEXF_PATH` to match the location of the json input data and desired output location (custom command line arguments will be supported soon).
-
 Then, run the python script:
 ```bash
-$ python generate_graph.py <path_to_data.json>
+$ python generate_graph.py <data1.json> <data2.json> ...
 ```
 Optional arguments:
-- `-c`, `--contacts`: path to contacts (.json) file
+- `-c`, `--contacts`: paths to contacts (.json) files, so that the first file overrides names
+ of identical contacts in other files
 - `-o`, `--output`: path to output GEXF file (default is `graph.gexf`)
 - `-h`, `--help`: help message to get more info about the usage of the script
 
