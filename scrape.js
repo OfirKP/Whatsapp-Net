@@ -12,15 +12,16 @@ async function main() {
         timeout: 0
     });
 
-    var filepath = path.join(__dirname, "WAPI.js");
-    await page.addScriptTag({ path: require.resolve(filepath) });
-
-    await page.waitForFunction('WAPI.isLoggedIn()',
+    await page.waitForSelector('*[data-icon=chat]',
     {
         polling: 1000,
         timeout: 0
     })
+
     console.log("Logged in!")
+    var filepath = path.join(__dirname, "WAPI.js");
+    await page.addScriptTag({ path: require.resolve(filepath) });
+
     filepath = path.join(__dirname, "inject.js");
     await page.addScriptTag({path: require.resolve(filepath)});
 
