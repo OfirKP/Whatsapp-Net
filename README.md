@@ -2,7 +2,7 @@
 This project creates a network graph of connections out of your WhatsApp groups' participants data. 
 
 
-<img align="center" src="https://i.imgur.com/oHtWhDC.png" width="600">
+<img align="center" src="https://i.imgur.com/rpmjMMD.png" width="800">
 
 ## Prerequisites
 Make sure you have installed all of the following prerequisites on your machine:
