@@ -22,7 +22,7 @@ def merge_json_files(*filenames):
     return merged
 
 
-def insert_data_into_graph(data, graph, contacts=None):
+def insert_data_into_graph(data, graph, contacts=None, only_contacts=False):
     groups = list(data.values())
 
     if contacts:
@@ -31,6 +31,9 @@ def insert_data_into_graph(data, graph, contacts=None):
                 if contact in contacts:
                     group["participants"].remove(contact)
                     group["participants"].append(contacts[contact])
+
+                elif only_contacts:
+                    group["participants"].remove(contact)
 
     print("{} groups were found.".format(len(groups)))
     for group_id, group in tqdm(data.items()):
@@ -54,6 +57,7 @@ parser.add_argument("data", nargs="+", type=str, help="paths to data (.json) fil
 parser.add_argument("-c", "--contacts", nargs="*", type=str, help="paths to contacts (.json) files, so that the first "
                                                                   "file overrides names of identical contacts in other "
                                                                   "files")
+parser.add_argument("-oc", "--only-contacts", action="store_true", help="use only given contacts when creating graph")
 parser.add_argument("-o", "--output", type=str, help="path to output GEXF file (default is {})"
                     .format(DEFAULT_OUTPUT_PATH))
 args = parser.parse_args()
@@ -64,6 +68,10 @@ if args.output:
 if args.contacts:
     contacts = merge_json_files(*args.contacts)
 
+assert args.contacts or not args.only_contacts, "When using --only-contacts, provide a contacts file using the " \
+                                                "--contacts argument"
+only_contacts = args.only_contacts
+
 visited_groups = set()
 
 print("Creating graph...")
@@ -73,7 +81,7 @@ G = nx.Graph()
 for path in args.data:
     with open(path, mode='r', encoding='utf-8') as f:
         groups_data = json.load(f)
-    insert_data_into_graph(groups_data, G, contacts=contacts)
+    insert_data_into_graph(groups_data, G, contacts=contacts, only_contacts=only_contacts)
     print()
 
 print("Saving Graph to {}...".format(output_path))
