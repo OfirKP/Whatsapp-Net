@@ -1,3 +1,4 @@
+// Generate groups info to be downloaded
 async function generateGroupsInfo() {
     const groups = WAPI.getAllGroups();
     let jsonObj = {};
@@ -15,6 +16,7 @@ async function generateGroupsInfo() {
     return jsonObj;
 }
 
+// Generate contacts info to be downloaded
 async function getContactsInfo() {
     const contacts = WAPI.getMyContacts();
     let jsonObj = {};
@@ -27,6 +29,7 @@ async function getContactsInfo() {
     return jsonObj;
 }
 
+// Download given content as file with filename
 function download(content, fileName, contentType) {
     var a = document.createElement("a");
     var file = new Blob([content], {type: contentType});
@@ -35,6 +38,7 @@ function download(content, fileName, contentType) {
     a.click();
 }
 
+// The scraper's main function
 async function run()
 {
     console.log("Downloading contacts...");
@@ -49,4 +53,4 @@ async function run()
     
 }
 
-run().then(() => console.log("Downloaded contacts! Generated JSON!"));
+run().then(() => console.log("Downloaded all info!"));

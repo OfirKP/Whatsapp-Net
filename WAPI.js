@@ -1,9 +1,7 @@
 /**
-*  https://github.com/Theblood/Wapi_NEW/blob/master/wapi.js
-*/
-
-/**
  * This script contains WAPI functions that need to be run in the context of the webpage
+ * 
+ * Source is from https://github.com/mukulhase/WebWhatsapp-Wrapper/blob/5e30eb3fed674677f774344d7b118ae3e34aa761/webwhatsapi/js/wapi.js
  */
 
 /**
@@ -15,9 +13,8 @@ if (!window.Store) {
         function getStore(modules) {
             let foundCount = 0;
             let neededObjects = [
-                { id: "Store", conditions: (module) => (module.Chat && module.Msg) ? module : null },
-                { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processFiles !== undefined) ? module.default : null },
-                { id: "ChatClass", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.Collection !== undefined && module.default.prototype.Collection === "Chat") ? module : null },
+                { id: "Store", conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null },
+                { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments) ? module.default : null },
                 { id: "MediaProcess", conditions: (module) => (module.BLOB) ? module : null },
                 { id: "Wap", conditions: (module) => (module.createGroup) ? module : null },
                 { id: "ServiceWorker", conditions: (module) => (module.default && module.default.killServiceWorker) ? module : null },
@@ -63,16 +60,29 @@ if (!window.Store) {
                                 window.Store[needObj.id] = needObj.foundedModule;
                             }
                         });
-                        window.Store.ChatClass.default.prototype.sendMessage = function (e) {
+                        window.Store.sendMessage = function (e) {
                             return window.Store.SendTextMsgToChat(this, ...arguments);
-                        }
+                        };
                         return window.Store;
                     }
                 }
             }
         }
 
-        webpackJsonp([], { 'parasite': (x, y, z) => getStore(z) }, ['parasite']);
+        if (typeof webpackJsonp === 'function') {
+            webpackJsonp([], {'parasite': (x, y, z) => getStore(z)}, ['parasite']);
+        } else {
+            webpackJsonp.push([
+                ['parasite'],
+                {
+                    parasite: function (o, e, t) {
+                        getStore(t);
+                    }
+                },
+                [['parasite']]
+            ]);
+        }
+
     })();
 }
 
@@ -289,12 +299,13 @@ window.WAPI.getAllGroups = function (done) {
 window.WAPI.getChat = function (id, done) {
     id = typeof id == "string" ? id : id._serialized;
     const found = window.Store.Chat.get(id);
+    found.sendMessage = (found.sendMessage) ? found.sendMessage : function () { return window.Store.sendMessage.apply(this, arguments); };
     if (done !== undefined) done(found);
     return found;
 }
 
 window.WAPI.getChatByName = function (name, done) {
-    const found = window.Store.Chat.find((chat) => chat.name === name);
+    const found = window.WAPI.getAllChats().find(val => val.name.includes(name))
     if (done !== undefined) done(found);
     return found;
 };
@@ -330,7 +341,7 @@ window.WAPI.sendImageFromDatabasePicBot = function (picId, chatId, caption) {
     return true;
 };
 
-window.WAPI.sendMessageWithThumb = function (thumb, url, title, description, chatId, done) {
+window.WAPI.sendMessageWithThumb = function (thumb, url, title, description, text, chatId, done) {
     var chatSend = WAPI.getChat(chatId);
     if (chatSend === undefined) {
         if (done !== undefined) done(false);
@@ -341,9 +352,13 @@ window.WAPI.sendMessageWithThumb = function (thumb, url, title, description, cha
         description : description,
         matchedText : url,
         title       : title,
-        thumbnail   : thumb
+        thumbnail   : thumb,
+        compose: true
     };
-    chatSend.sendMessage(url, { linkPreview: linkPreview, mentionedJidList: [], quotedMsg: null, quotedMsgAdminGroupJid: null });
+    chatSend.sendMessage(text, { linkPreview: linkPreview,
+                                mentionedJidList: [],
+                                quotedMsg: null,
+                                quotedMsgAdminGroupJid: null });
     if (done !== undefined) done(true);
     return true;
 };
@@ -525,10 +540,9 @@ window.WAPI.getAllGroupMetadata = function (done) {
  */
 window.WAPI.getGroupMetadata = async function (id, done) {
     let output = window.Store.GroupMetadata.get(id);
-
     if (output !== undefined) {
         if (output.stale) {
-            await output.update();
+            await window.Store.GroupMetadata.update(id);
         }
     }
 
@@ -592,6 +606,14 @@ window.WAPI.isLoggedIn = function (done) {
 
     if (done !== undefined) done(isLogged);
     return isLogged;
+};
+
+window.WAPI.isConnected = function (done) {
+    // Phone Disconnected icon appears when phone is disconnected from the tnternet
+    const isConnected = document.querySelector('*[data-icon="alert-phone"]') !== null ? false : true;
+
+    if (done !== undefined) done(isConnected);
+    return isConnected;
 };
 
 window.WAPI.processMessageObj = function (messageObj, includeMe, includeNotifications) {
@@ -822,14 +844,14 @@ window.WAPI.sendSeen = function (id, done) {
     var chat = window.WAPI.getChat(id);
     if (chat !== undefined) {
         if (done !== undefined) {
-            //Store.SendSeen(Store.Chat.models[0], false).then(function () {
+            if (chat.getLastMsgKeyForAction === undefined)
+                chat.getLastMsgKeyForAction = function () { };
             Store.SendSeen(chat, false).then(function () {
                 done(true);
             });
             return true;
         } else {
-            //Store.SendSeen(Store.Chat.models[0], false);
-            Store.SendSeen(Chat, false);
+            Store.SendSeen(chat, false);
             return true;
         }
     }
@@ -1078,11 +1100,12 @@ window.WAPI.deleteMessage = function (chatId, messageArray, revoke=false, done) 
     if (!Array.isArray(messageArray)) {
         messageArray = [messageArray];
     }
+    let messagesToDelete = messageArray.map(msgId => window.Store.Msg.get(msgId));
 
     if (revoke) {
-        conversation.sendRevokeMsgs(messageArray, conversation);    
+        conversation.sendRevokeMsgs(messagesToDelete, conversation);
     } else {
-        conversation.sendDeleteMsgs(messageArray, conversation);    
+        conversation.sendDeleteMsgs(messagesToDelete, conversation);
     }
 
 
@@ -1211,8 +1234,8 @@ var idUser = new window.Store.UserConstructor(chatid, { intentionallyUsePrivateC
 // create new chat
 return Store.Chat.find(idUser).then((chat) => {
     var mediaBlob = window.WAPI.base64ImageToFile(imgBase64, filename);
-    var mc = new Store.MediaCollection();
-    mc.processFiles([mediaBlob], chat, 1).then(() => {
+    var mc = new Store.MediaCollection(chat);
+    mc.processAttachments([{file: mediaBlob}, 1], chat, 1).then(() => {
         var media = mc.models[0];
         media.sendToChat(chat, { caption: caption });
         if (done !== undefined) done(true);
@@ -1314,7 +1337,7 @@ window.WAPI.sendVCard = function (chatId, vcard) {
     chat.addAndSendMsg(tempMsg);
 };
 /**
- * Block contact 
+ * Block contact
  * @param {string} id '000000000000@c.us'
  * @param {*} done - function - Callback function to be called when a new message arrives.
  */
@@ -1329,7 +1352,7 @@ window.WAPI.contactBlock = function (id, done) {
     return false;
 }
 /**
- * unBlock contact 
+ * unBlock contact
  * @param {string} id '000000000000@c.us'
  * @param {*} done - function - Callback function to be called when a new message arrives.
  */
