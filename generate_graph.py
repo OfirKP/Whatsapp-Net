@@ -27,29 +27,26 @@ def insert_data_into_graph(data, graph, contacts=None, only_contacts=False):
 
     if contacts:
         for group in groups:
-            for contact in group["participants"][:]:
-                if contact in contacts:
-                    group["participants"].remove(contact)
-                    group["participants"].append(contacts[contact])
+            for phone in group["participants"][:]:
+                if phone in contacts:
+                    graph.add_node(phone, label=contacts[phone])
 
                 elif only_contacts:
-                    group["participants"].remove(contact)
+                    group["participants"].remove(phone)
 
     print("{} groups were found.".format(len(groups)))
     for group_id, group in tqdm(data.items()):
-        if group_id in visited_groups:
-            # print(f"Already visited {group}!")
-            continue
+        if group_id not in visited_groups:
+            visited_groups.add(group_id)
 
-        visited_groups.add(group_id)
-        participants_cpy = group["participants"][:]
-        for participant in group["participants"]:
-            participants_cpy.remove(participant)
-            for neighbor in participants_cpy:
-                if graph.has_edge(participant, neighbor):
-                    graph[participant][neighbor]["weight"] += 1
-                else:
-                    graph.add_edge(participant, neighbor, weight=1)
+            participants_cpy = group["participants"][:]
+            for participant in group["participants"]:
+                participants_cpy.remove(participant)
+                for neighbor in participants_cpy:
+                    if graph.has_edge(participant, neighbor):
+                        graph[participant][neighbor]["weight"] += 1
+                    else:
+                        graph.add_edge(participant, neighbor, weight=1)
 
 
 parser = argparse.ArgumentParser(description="Generate GEXF graph file from scraped data")

@@ -25,7 +25,7 @@ $ pip install -r requirements.txt
 _**or**_ by installing them directly:
 
 ```bash
-$ pip install networkx==2.3 tqdm==4.32.1 matplotlib==3.1.1
+$ pip install networkx==2.5 tqdm==4.50.2 matplotlib==3.1.1
 ```
 ## Usage
 
