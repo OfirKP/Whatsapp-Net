@@ -6,14 +6,16 @@ from tqdm import tqdm
 import json
 import networkx as nx
 import argparse
-# import matplotlib.pyplot as plt
 
-DEFAULT_OUTPUT_PATH = 'graph.gexf'  # Path to save
-output_path = DEFAULT_OUTPUT_PATH
-contacts = None
+visited_groups = set()
 
 
 def merge_json_files(*filenames):
+    """
+    Merge multiple json files (assuming start is a dictionary), overriding priority is from least to most important
+    :param filenames: filenames of json to merge
+    :return: merged & parsed json files
+    """
     merged = {}
     for filename in filenames[::-1]:
         assert os.path.isfile(filename), "File {} doesn't exist!".format(filename)
@@ -23,6 +25,14 @@ def merge_json_files(*filenames):
 
 
 def insert_data_into_graph(data, graph, contacts=None, only_contacts=False):
+    """
+    Inserting data into NetworkX graph, by assigning an edge to each couple of participants who share a common group.
+    Edge's weight is number of common groups.
+    :param data: merged data from all
+    :param graph: graph to insert data into
+    :param contacts: merged dictionary of contacts
+    :param only_contacts: graph should store only nodes who are in contacts
+    """
     groups = list(data.values())
 
     if contacts:
@@ -49,54 +59,47 @@ def insert_data_into_graph(data, graph, contacts=None, only_contacts=False):
                         graph.add_edge(participant, neighbor, weight=1)
 
 
-parser = argparse.ArgumentParser(description="Generate GEXF graph file from scraped data")
-parser.add_argument("data", nargs="+", type=str, help="paths to data (.json) files")
-parser.add_argument("-c", "--contacts", nargs="*", type=str, help="paths to contacts (.json) files, so that the first "
-                                                                  "file overrides names of identical contacts in other "
-                                                                  "files")
-parser.add_argument("-oc", "--only-contacts", action="store_true", help="use only given contacts when creating graph")
-parser.add_argument("-o", "--output", type=str, help="path to output GEXF file (default is {})"
-                    .format(DEFAULT_OUTPUT_PATH))
-args = parser.parse_args()
+def main():
+    DEFAULT_OUTPUT_PATH = 'graph.gexf'  # Path to save
 
-if args.output:
-    output_path = args.output
+    parser = argparse.ArgumentParser(description="Generate GEXF graph file from scraped data")
+    parser.add_argument("data", nargs="+", type=str, help="paths to data (.json) files")
+    parser.add_argument("-c", "--contacts", nargs="*", type=str,
+                        help="paths to contacts (.json) files, so that the first "
+                             "file overrides names of identical contacts in other "
+                             "files")
+    parser.add_argument("-oc", "--only-contacts", action="store_true",
+                        help="use only given contacts when creating graph")
+    parser.add_argument("-o", "--output", default=DEFAULT_OUTPUT_PATH, type=str,
+                        help="path to output GEXF file (default is {})"
+                        .format(DEFAULT_OUTPUT_PATH))
+    args = parser.parse_args()
 
-if args.contacts:
-    contacts = merge_json_files(*args.contacts)
+    output_path = DEFAULT_OUTPUT_PATH
+    if args.output:
+        output_path = args.output
 
-assert args.contacts or not args.only_contacts, "When using --only-contacts, provide a contacts file using the " \
-                                                "--contacts argument"
-only_contacts = args.only_contacts
+    contacts = None
+    if args.contacts:
+        contacts = merge_json_files(*args.contacts)
 
-visited_groups = set()
+    assert args.contacts or not args.only_contacts, "When using --only-contacts, provide a contacts file using the " \
+                                                    "--contacts argument"
+    only_contacts = args.only_contacts
 
-print("Creating graph...")
-print()
-
-G = nx.Graph()
-for path in args.data:
-    with open(path, mode='r', encoding='utf-8') as f:
-        groups_data = json.load(f)
-    insert_data_into_graph(groups_data, G, contacts=contacts, only_contacts=only_contacts)
+    print("Creating graph...")
     print()
 
-print("Saving Graph to {}...".format(output_path))
-nx.write_gexf(G, output_path)
+    G = nx.Graph()
+    for path in args.data:
+        with open(path, mode='r', encoding='utf-8') as f:
+            groups_data = json.load(f)
+        insert_data_into_graph(groups_data, G, contacts=contacts, only_contacts=only_contacts)
+        print()
 
-# Uncomment lines below to plot the graph using networkx and matplotlib
+    print("Saving Graph to {}...".format(output_path))
+    nx.write_gexf(G, output_path)
 
-# pos = nx.spring_layout(G)
-# # nodes
-# nx.draw_networkx_nodes(G, pos, node_size=90)
-#
-# # edges
-# nx.draw_networkx_edges(G, pos, edgelist=G.edges,
-#                        width=0.1)
-#
-# # labels
-# nx.draw_networkx_labels(G, pos, font_size=9, font_family='sans-serif')
-#
-# plt.axis('off')
-# plt.show()
-#
+
+if __name__ == '__main__':
+    main()
