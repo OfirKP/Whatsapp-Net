@@ -1,6 +1,6 @@
 /**
  * This script contains WAPI functions that need to be run in the context of the webpage
- * 
+ *
  * Source is from https://github.com/mukulhase/WebWhatsapp-Wrapper/blob/5e30eb3fed674677f774344d7b118ae3e34aa761/webwhatsapi/js/wapi.js
  */
 
@@ -8,11 +8,11 @@
  * Auto discovery the webpack object references of instances that contains all functions used by the WAPI
  * functions and creates the Store object.
  */
-if (!window.Store) {
+ if (!window.Store) {
     (function () {
         function getStore(modules) {
-            let foundCount = 0;
-            let neededObjects = [
+        let foundCount = 0;
+		let neededObjects = [
                 { id: "Store", conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null },
                 { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments) ? module.default : null },
                 { id: "MediaProcess", conditions: (module) => (module.BLOB) ? module : null },
@@ -29,58 +29,58 @@ if (!window.Store) {
                 { id: "SendSeen", conditions: (module) => (module.sendSeen) ? module.sendSeen : null },
                 { id: "sendDelete", conditions: (module) => (module.sendDelete) ? module.sendDelete : null }
             ];
-            for (let idx in modules) {
-                if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
-                    let first = Object.values(modules[idx])[0];
-                    if ((typeof first === "object") && (first.exports)) {
-                        for (let idx2 in modules[idx]) {
-                            let module = modules(idx2);
-                            if (!module) {
-                                continue;
-                            }
-                            neededObjects.forEach((needObj) => {
-                                if (!needObj.conditions || needObj.foundedModule)
-                                    return;
-                                let neededModule = needObj.conditions(module);
-                                if (neededModule !== null) {
-                                    foundCount++;
-                                    needObj.foundedModule = neededModule;
-                                }
-                            });
-                            if (foundCount == neededObjects.length) {
-                                break;
-                            }
-                        }
-
-                        let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
-                        window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
-                        neededObjects.splice(neededObjects.indexOf(neededStore), 1);
-                        neededObjects.forEach((needObj) => {
-                            if (needObj.foundedModule) {
-                                window.Store[needObj.id] = needObj.foundedModule;
-                            }
-                        });
-                        window.Store.sendMessage = function (e) {
-                            return window.Store.SendTextMsgToChat(this, ...arguments);
-                        };
-                        return window.Store;
+        for (let idx in modules) {
+            if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
+                neededObjects.forEach((needObj) => {
+                    if (!needObj.conditions || needObj.foundedModule)
+                        return;
+                    let neededModule = needObj.conditions(modules[idx]);
+                    if (neededModule !== null) {
+                        foundCount++;
+                        needObj.foundedModule = neededModule;
                     }
+                });
+
+                if (foundCount == neededObjects.length) {
+                    break;
                 }
             }
         }
 
+        let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
+        window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
+        neededObjects.splice(neededObjects.indexOf(neededStore), 1);
+        neededObjects.forEach((needObj) => {
+            if (needObj.foundedModule) {
+                window.Store[needObj.id] = needObj.foundedModule;
+            }
+        });
+		
+		window.Store.Chat.modelClass.prototype.sendMessage = function (e) {
+			window.Store.SendTextMsgToChat(this, ...arguments);
+		}		
+		
+        return window.Store;
+    }
+
         if (typeof webpackJsonp === 'function') {
             webpackJsonp([], {'parasite': (x, y, z) => getStore(z)}, ['parasite']);
         } else {
-            webpackJsonp.push([
-                ['parasite'],
-                {
-                    parasite: function (o, e, t) {
-                        getStore(t);
-                    }
-                },
-                [['parasite']]
-            ]);
+            let tag = new Date().getTime();
+			webpackChunkbuild.push([
+				["parasite" + tag],
+				{
+
+				},
+				function (o, e, t) {
+					let modules = [];
+					for (let idx in o.m) {
+						let module = o(idx);
+						modules.push(module);
+					}
+					getStore(modules);
+				}
+			]);
         }
 
     })();
@@ -540,6 +540,7 @@ window.WAPI.getAllGroupMetadata = function (done) {
  */
 window.WAPI.getGroupMetadata = async function (id, done) {
     let output = window.Store.GroupMetadata.get(id);
+
     if (output !== undefined) {
         if (output.stale) {
             await window.Store.GroupMetadata.update(id);
