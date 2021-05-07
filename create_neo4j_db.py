@@ -41,8 +41,14 @@ def insert_relationships_into_graph(graph: Graph, serialized_groups: dict, batch
             group_participants_numbers = group_properties['participants']
 
             for participant_number in group_participants_numbers:
+                relationship_metadata = {}
+                if 'admins' in group_properties:
+                    relationship_metadata["is_admin"] = participant_number in group_properties["admins"]
+
                 # Prepare relationships info for bulk insertion
-                relationships_data.append((participant_number, {}, group_id))
+                relationships_data.append((participant_number,
+                                           relationship_metadata,
+                                           group_id))
 
     # Bulk insert all relationships into DB
     print(f"Inserting {len(relationships_data)} relationships into DB...")
