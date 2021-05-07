@@ -2,13 +2,21 @@
 async function generateGroupsInfo() {
     let jsonObj = {};
     const groups = WAPI.getAllGroups();
+
+    // Get participants info
     const getParticipantsIDs = groups.map((group) => WAPI.getGroupParticipantIDs(group.id));
     const allParticipantsIDs = await Promise.all(getParticipantsIDs);
+
+    // Get admins info
+    const getGroupsAdmins = groups.map((group) => WAPI.getGroupAdmins(group.id));
+    const allGroupsAdmins = await Promise.all(getGroupsAdmins);
+
     console.log(groups.length, allParticipantsIDs.length);
     groups.forEach((group, index) => {
         let groupObj = {};
         groupObj["group_name"] = group.name;
         groupObj["participants"] = allParticipantsIDs[index].map(p => p.user);
+        groupObj["admins"] = allGroupsAdmins[index].map(p => p.user);
         jsonObj[group.id._serialized] = groupObj;
     });
     return jsonObj;
