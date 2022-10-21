@@ -38,13 +38,17 @@ client.on('ready', async () => {
     await Promise.all(groups.map(async group => {
         groups_info[group.id._serialized] = {
             group_name: group.name,
-            participants: group.participants.map(participant => participant.id.user)
+            participants: group.participants.map(participant => participant.id.user),
+            admins: group.participants.filter(participant => participant.isAdmin).map(participant => participant.id.user)
         };
     }));
 
     // Save the groups info to a file
     fs.writeFileSync('groups.json', JSON.stringify(groups_info, null, 2));
     console.log("Saved groups info to groups.json");
+
+    // End the session
+    await client.destroy();
 });
 
 client.initialize();
