@@ -1,35 +1,50 @@
-const puppeteer = require('puppeteer');
-const path = require("path");
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const fs = require('fs');
 
-async function main() {
-    // Launch browser
-    const browser = await puppeteer.launch({
-        headless: false,
-        userDataDir: path.join(process.cwd(), "ChromeSession")
-    });
-    const page = await browser.newPage();
+const client = new Client({
+    authStrategy: new LocalAuth()
+});
 
-    // Go to WhatsApp Web
-    await page.goto('https://web.whatsapp.com', {
-        waitUntil: 'networkidle0',
-        timeout: 0
-    });
 
-    // Wait until login using QR Code
-    await page.waitForSelector('*[data-icon=chat]',
-    {
-        polling: 1000,
-        timeout: 0
-    })
-    console.log("Logged in!")
+client.on('qr', qr => {
+    qrcode.generate(qr, {small: true});
+});
 
-    // Inject API file
-    var filepath = path.join(__dirname, "WAPI.js");
-    await page.addScriptTag({ path: require.resolve(filepath) });
+client.on('ready', async () => {
+    console.log('Client is ready!');
 
-    // Inject scraper
-    filepath = path.join(__dirname, "inject.js");
-    await page.addScriptTag({path: require.resolve(filepath)});
-};
+    // Get all contacts
+    const contacts = (await client.getContacts()).filter(contact => contact.isMyContact);
 
-main();
+    // Create a JSON object with all contacts mapped by their ID
+    const contactsMap = contacts.reduce((acc, contact) => {
+        acc[contact.id.user] = contact.name;
+        return acc;
+    }, {});
+
+    // Write the JSON object to a file
+    fs.writeFileSync('contacts.json', JSON.stringify(contactsMap, null, 2));
+    console.log("Saved contacts info to contacts.json");
+
+    const chats = await client.getChats();
+
+    // Filter only group chats
+    const groups = chats.filter(chat => chat.isGroup);
+
+
+    // Get all participants in each group
+    const groups_info = {};
+    await Promise.all(groups.map(async group => {
+        groups_info[group.id._serialized] = {
+            group_name: group.name,
+            participants: group.participants.map(participant => participant.id.user)
+        };
+    }));
+
+    // Save the groups info to a file
+    fs.writeFileSync('groups.json', JSON.stringify(groups_info, null, 2));
+    console.log("Saved groups info to groups.json");
+});
+
+client.initialize();
